@@ -2,7 +2,8 @@
 
 from groq import Groq
 
-from app.schemas import ReviewResponse
+from app.schemas import Finding, ReviewResponse
+from app.services.scoring import calculate_quality_rating
 
 
 class CodeReviewer:
@@ -29,18 +30,19 @@ Review the following {language} source code.
 HISTORICAL REVIEW RULES:
 {rules}
 
-Use the historical rules as evidence when they are relevant to a finding.
+Use the historical rules as evidence when relevant.
 
 IMPORTANT: Return ONLY valid JSON.
 
 Use EXACTLY these top-level fields:
-- quality_rating
 - summary
 - findings
 - best_practices
 - optimizations
 
-Each finding MUST use this structure:
+Do NOT return quality_rating. The application calculates it separately.
+
+Each finding MUST use:
 {{
   "category": "security",
   "severity": "high",
@@ -55,12 +57,11 @@ Rules:
 - category: bug, security, performance, formatting, architecture, maintainability
 - severity: critical, high, medium, low, info
 - line: integer or null
-- quality_rating: number from 1 to 10
-- findings: always an array
-- best_practices: always an array
-- optimizations: always an array
-- historical_rule MUST contain the exact description from the historical rules when a rule supports the finding
-- historical_rule MUST be null when no historical rule is relevant
+- historical_rule must contain only the exact historical rule description, without Rule ID or type
+- historical_rule must be null when no historical rule is relevant
+- findings must always be an array
+- best_practices must always be an array
+- optimizations must always be an array
 
 CODE:
 ```{language}
@@ -86,5 +87,9 @@ CODE:
 
         text = response.choices[0].message.content.strip()
         data = json.loads(text)
+
+        findings = [Finding(**finding) for finding in data.get("findings", [])]
+        data["findings"] = findings
+        data["quality_rating"] = calculate_quality_rating(findings)
 
         return ReviewResponse(**data)
