@@ -22,9 +22,8 @@ def test_root():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "message": "Intelligent Code Reviewer is running"
-    }
+    assert "text/html" in response.headers["content-type"]
+    assert "Intelligent Code Reviewer" in response.text
 
 
 def test_review_requires_code():

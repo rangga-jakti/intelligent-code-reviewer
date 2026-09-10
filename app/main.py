@@ -1,6 +1,8 @@
 ﻿import secrets
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.auth import get_current_user
 from app.config import GROQ_API_KEY
@@ -34,7 +36,7 @@ init_db()
 
 @app.get("/")
 def root():
-    return {"message": "Intelligent Code Reviewer is running"}
+    return FileResponse("frontend/index.html")
 
 
 @app.post("/users", response_model=UserResponse)
@@ -122,3 +124,11 @@ def review_progress(
     return get_review_progress(
         user_id=current_user["id"],
     )
+app.mount(
+    "/",
+    StaticFiles(
+        directory="frontend",
+        html=True,
+    ),
+    name="frontend",
+)

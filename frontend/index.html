@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Code Reviewer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <h1>Intelligent Code Reviewer</h1>
+            <p>AI-powered code quality and security analysis</p>
+        </div>
+        <div class="status">
+            <span class="status-dot"></span>
+            API Connected
+        </div>
+    </header>
+    <main class="container">
+        <section class="hero">
+            <div>
+                <span class="eyebrow">AI CODE REVIEW</span>
+                <h2>Find problems before they reach production.</h2>
+                <p>
+                    Analyze your code with AI, historical engineering rules,
+                    severity scoring, and developer progress tracking.
+                </p>
+            </div>
+        </section>
+        <section class="review-card">
+            <div class="section-header">
+                <div>
+                    <h3>Review Code</h3>
+                    <p>Paste your source code and let the reviewer analyze it.</p>
+                </div>
+            </div>
+            <div class="controls">
+                <label>
+                    Language
+                    <select id="language">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="sql">SQL</option>
+                    </select>
+                </label>
+                <label class="api-key-field">
+                    API Key
+                    <input
+                        id="apiKey"
+                        type="password"
+                        placeholder="Enter your X-API-Key"
+                    >
+                </label>
+            </div>
+            <textarea
+                id="code"
+                spellcheck="false"
+                placeholder="Paste your code here..."
+            >def get_user(user_id):
+    query = "SELECT * FROM users WHERE id = " + user_id
+    return execute(query)</textarea>
+            <button id="reviewButton">
+                <span id="buttonText">Review Code</span>
+                <span id="spinner" class="spinner hidden"></span>
+            </button>
+            <div id="error" class="error hidden"></div>
+        </section>
+        <section id="resultSection" class="hidden">
+            <div class="stats-grid">
+                <div class="stat-card score-card">
+                    <span class="stat-label">Quality Score</span>
+                    <strong id="qualityScore">-</strong>
+                    <span>/ 10</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Findings</span>
+                    <strong id="findingCount">0</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Best Practices</span>
+                    <strong id="practiceCount">0</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Optimizations</span>
+                    <strong id="optimizationCount">0</strong>
+                </div>
+            </div>
+            <div class="result-card">
+                <h3>Review Summary</h3>
+                <p id="summary"></p>
+            </div>
+            <div class="result-card">
+                <div class="section-header">
+                    <div>
+                        <h3>Findings</h3>
+                        <p>Issues detected by the intelligent reviewer.</p>
+                    </div>
+                </div>
+                <div id="findings"></div>
+            </div>
+            <div class="result-card">
+                <h3>Best Practices</h3>
+                <ul id="bestPractices"></ul>
+            </div>
+            <div class="result-card">
+                <h3>Optimizations</h3>
+                <ul id="optimizations"></ul>
+            </div>
+        </section>
+        <section id="historySection" class="hidden">
+            <div class="section-title">
+                <span class="eyebrow">REVIEW HISTORY</span>
+                <h2>Previous Reviews</h2>
+            </div>
+            <div class="result-card">
+                <div id="history"></div>
+            </div>
+        </section>        <section id="progressSection" class="hidden">
+            <div class="section-title">
+                <span class="eyebrow">DEVELOPER PROGRESS</span>
+                <h2>Your Review Journey</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Total Reviews</span>
+                    <strong id="totalReviews">0</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Average Quality</span>
+                    <strong id="averageQuality">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Best Quality</span>
+                    <strong id="bestQuality">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Improvement</span>
+                    <strong id="improvement">-</strong>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>24/7 Intelligent Code Reviewer · AI-powered developer tooling</p>
+    </footer>
+    <script src="app.js"></script>
+</body>
+</html>
+
+
+
