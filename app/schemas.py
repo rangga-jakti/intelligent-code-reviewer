@@ -31,3 +31,10 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     username: str
     api_key: str
+
+class ProgressResponse(BaseModel):
+    total_reviews: int
+    average_quality: float | None
+    best_quality: float | None
+    latest_quality: float | None
+    improvement: float | None

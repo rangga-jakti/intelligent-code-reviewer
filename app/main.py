@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from app.auth import get_current_user
 from app.config import GROQ_API_KEY
 from app.schemas import (
+    ProgressResponse,
     ReviewRequest,
     ReviewResponse,
     UserCreate,
@@ -12,6 +13,7 @@ from app.schemas import (
 )
 from app.services.database import (
     create_user,
+    get_review_progress,
     get_reviews,
     init_db,
     save_review,
@@ -111,3 +113,12 @@ def review_history(
             user_id=current_user["id"],
         ),
     }
+
+
+@app.get("/progress", response_model=ProgressResponse)
+def review_progress(
+    current_user: dict = Depends(get_current_user),
+):
+    return get_review_progress(
+        user_id=current_user["id"],
+    )

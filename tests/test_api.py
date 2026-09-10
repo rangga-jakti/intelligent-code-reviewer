@@ -201,3 +201,97 @@ def test_registered_user_can_access_history():
 
     assert history_response.status_code == 200
     assert history_response.json()["reviews"] == []
+
+def test_progress_requires_api_key():
+    response = client.get("/progress")
+
+    assert response.status_code == 401
+
+
+def test_new_user_has_empty_progress():
+    response = client.post(
+        "/users",
+        json={
+            "username": "progress-new-user",
+        },
+    )
+
+    assert response.status_code == 200
+
+    api_key = response.json()["api_key"]
+
+    progress_response = client.get(
+        "/progress",
+        headers={
+            "X-API-Key": api_key,
+        },
+    )
+
+    assert progress_response.status_code == 200
+
+    progress = progress_response.json()
+
+    assert progress["total_reviews"] == 0
+    assert progress["average_quality"] is None
+    assert progress["best_quality"] is None
+    assert progress["latest_quality"] is None
+    assert progress["improvement"] is None
+
+def test_progress_tracks_user_reviews():
+    import app.services.database as database
+
+    user_response = client.post(
+        "/users",
+        json={
+            "username": "progress-data-user",
+        },
+    )
+
+    assert user_response.status_code == 200
+
+    api_key = user_response.json()["api_key"]
+
+    user = database.get_user_by_api_key(api_key)
+
+    assert user is not None
+
+    database.save_review(
+        user_id=user["id"],
+        language="python",
+        code="print('first')",
+        quality_rating=6.0,
+        summary="First review",
+    )
+
+    database.save_review(
+        user_id=user["id"],
+        language="python",
+        code="print('second')",
+        quality_rating=8.0,
+        summary="Second review",
+    )
+
+    database.save_review(
+        user_id=user["id"],
+        language="python",
+        code="print('third')",
+        quality_rating=9.0,
+        summary="Third review",
+    )
+
+    response = client.get(
+        "/progress",
+        headers={
+            "X-API-Key": api_key,
+        },
+    )
+
+    assert response.status_code == 200
+
+    progress = response.json()
+
+    assert progress["total_reviews"] == 3
+    assert progress["average_quality"] == 7.7
+    assert progress["best_quality"] == 9.0
+    assert progress["latest_quality"] == 9.0
+    assert progress["improvement"] == 3.0

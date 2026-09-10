@@ -182,3 +182,61 @@ def get_reviews(
             ).fetchall()
 
         return [dict(row) for row in rows]
+
+def get_review_progress(user_id: int) -> dict:
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total_reviews,
+                AVG(quality_rating) AS average_quality,
+                MAX(quality_rating) AS best_quality,
+                (
+                    SELECT quality_rating
+                    FROM reviews
+                    WHERE user_id = ?
+                    ORDER BY id DESC
+                    LIMIT 1
+                ) AS latest_quality,
+                (
+                    SELECT quality_rating
+                    FROM reviews
+                    WHERE user_id = ?
+                    ORDER BY id ASC
+                    LIMIT 1
+                ) AS first_quality
+            FROM reviews
+            WHERE user_id = ?
+            """,
+            (user_id, user_id, user_id),
+        ).fetchone()
+
+        total_reviews = row["total_reviews"]
+
+        if total_reviews == 0:
+            return {
+                "total_reviews": 0,
+                "average_quality": None,
+                "best_quality": None,
+                "latest_quality": None,
+                "improvement": None,
+            }
+
+        first_quality = row["first_quality"]
+        latest_quality = row["latest_quality"]
+
+        improvement = round(
+            latest_quality - first_quality,
+            1,
+        )
+
+        return {
+            "total_reviews": total_reviews,
+            "average_quality": round(
+                row["average_quality"],
+                1,
+            ),
+            "best_quality": row["best_quality"],
+            "latest_quality": latest_quality,
+            "improvement": improvement,
+        }
