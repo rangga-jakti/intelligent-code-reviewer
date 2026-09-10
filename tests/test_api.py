@@ -24,3 +24,14 @@ def test_review_rejects_empty_code():
         },
     )
     assert response.status_code == 422
+def test_review_rejects_unsupported_language():
+    response = client.post(
+        "/review",
+        json={
+            "code": "fn main() {}",
+            "language": "rust",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "Unsupported language" in response.json()["detail"]

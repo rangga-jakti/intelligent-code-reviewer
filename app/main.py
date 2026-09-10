@@ -3,7 +3,9 @@
 from app.config import GROQ_API_KEY
 from app.schemas import ReviewRequest, ReviewResponse
 from app.services.historical_rules import load_rules
+from app.services.language_config import get_language_config
 from app.services.reviewer import CodeReviewer
+
 
 app = FastAPI(
     title="24/7 Intelligent Code Reviewer",
@@ -21,7 +23,15 @@ def review_code(request: ReviewRequest):
     if not GROQ_API_KEY:
         raise HTTPException(
             status_code=500,
-            detail="GROQ_API_KEY is not configured."
+            detail="GROQ_API_KEY is not configured.",
+        )
+
+    try:
+        get_language_config(request.language)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
         )
 
     try:
@@ -36,5 +46,5 @@ def review_code(request: ReviewRequest):
     except Exception as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Review failed: {exc}"
+            detail=f"Review failed: {exc}",
         )
