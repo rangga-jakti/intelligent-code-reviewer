@@ -4,6 +4,8 @@ from groq import Groq
 
 from app.schemas import Finding, ReviewResponse
 from app.services.language_config import get_language_config
+from app.services.rule_enrichment import enrich_findings_with_historical_rules
+from app.services.rule_matcher import match_historical_rules
 from app.services.scoring import calculate_quality_rating
 
 
@@ -25,10 +27,19 @@ class CodeReviewer:
             f"- {item}" for item in language_config["focus"]
         )
 
+        relevant_rules = match_historical_rules(
+            code=code,
+            findings=[],
+            historical_rules=historical_rules,
+        )
+
         rules = "\n".join(
             f"- Rule {rule['id']} [{rule['type']}]: {rule['description']}"
-            for rule in historical_rules
+            for rule in relevant_rules
         )
+
+        if not rules:
+            rules = "- No directly relevant historical rules found."
 
         prompt = f"""
 You are an expert software engineer, code reviewer, security analyst, and software architect.
@@ -38,10 +49,11 @@ Review the following {language_name} source code.
 LANGUAGE-SPECIFIC REVIEW FOCUS:
 {focus_areas}
 
-HISTORICAL REVIEW RULES:
+RELEVANT HISTORICAL REVIEW RULES:
 {rules}
 
 Use the historical rules as evidence when relevant.
+Do not force a historical rule onto a finding when it is not applicable.
 
 IMPORTANT: Return ONLY valid JSON.
 
@@ -102,9 +114,17 @@ CODE:
         text = response.choices[0].message.content.strip()
         data = json.loads(text)
 
+        raw_findings = data.get("findings", [])
+
+        enriched_findings = enrich_findings_with_historical_rules(
+            code=code,
+            findings=raw_findings,
+            historical_rules=historical_rules,
+        )
+
         findings = [
             Finding(**finding)
-            for finding in data.get("findings", [])
+            for finding in enriched_findings
         ]
 
         data["findings"] = findings
