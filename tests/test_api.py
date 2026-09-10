@@ -35,3 +35,9 @@ def test_review_rejects_unsupported_language():
 
     assert response.status_code == 422
     assert "Unsupported language" in response.json()["detail"]
+
+def test_review_history():
+    response = client.get("/reviews")
+
+    assert response.status_code == 200
+    assert "reviews" in response.json()

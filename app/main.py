@@ -2,6 +2,7 @@
 
 from app.config import GROQ_API_KEY
 from app.schemas import ReviewRequest, ReviewResponse
+from app.services.database import get_reviews, init_db, save_review
 from app.services.historical_rules import load_rules
 from app.services.language_config import get_language_config
 from app.services.reviewer import CodeReviewer
@@ -11,6 +12,9 @@ app = FastAPI(
     title="24/7 Intelligent Code Reviewer",
     version="0.1.0",
 )
+
+
+init_db()
 
 
 @app.get("/")
@@ -38,13 +42,30 @@ def review_code(request: ReviewRequest):
         rules = load_rules()
         reviewer = CodeReviewer(GROQ_API_KEY)
 
-        return reviewer.review(
+        result = reviewer.review(
             code=request.code,
             language=request.language,
             historical_rules=rules,
         )
+
+        save_review(
+            language=request.language,
+            code=request.code,
+            quality_rating=result.quality_rating,
+            summary=result.summary,
+        )
+
+        return result
+
     except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail=f"Review failed: {exc}",
         )
+
+
+@app.get("/reviews")
+def review_history():
+    return {
+        "reviews": get_reviews(),
+    }
