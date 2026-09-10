@@ -1,8 +1,21 @@
-﻿from fastapi import FastAPI, HTTPException
+﻿import secrets
 
+from fastapi import Depends, FastAPI, HTTPException
+
+from app.auth import get_current_user
 from app.config import GROQ_API_KEY
-from app.schemas import ReviewRequest, ReviewResponse
-from app.services.database import get_reviews, init_db, save_review
+from app.schemas import (
+    ReviewRequest,
+    ReviewResponse,
+    UserCreate,
+    UserResponse,
+)
+from app.services.database import (
+    create_user,
+    get_reviews,
+    init_db,
+    save_review,
+)
 from app.services.historical_rules import load_rules
 from app.services.language_config import get_language_config
 from app.services.reviewer import CodeReviewer
@@ -22,8 +35,32 @@ def root():
     return {"message": "Intelligent Code Reviewer is running"}
 
 
+@app.post("/users", response_model=UserResponse)
+def register_user(request: UserCreate):
+    api_key = secrets.token_urlsafe(32)
+
+    try:
+        create_user(
+            username=request.username,
+            api_key=api_key,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Could not create user: {exc}",
+        )
+
+    return {
+        "username": request.username,
+        "api_key": api_key,
+    }
+
+
 @app.post("/review", response_model=ReviewResponse)
-def review_code(request: ReviewRequest):
+def review_code(
+    request: ReviewRequest,
+    current_user: dict = Depends(get_current_user),
+):
     if not GROQ_API_KEY:
         raise HTTPException(
             status_code=500,
@@ -49,6 +86,7 @@ def review_code(request: ReviewRequest):
         )
 
         save_review(
+            user_id=current_user["id"],
             language=request.language,
             code=request.code,
             quality_rating=result.quality_rating,
@@ -65,7 +103,11 @@ def review_code(request: ReviewRequest):
 
 
 @app.get("/reviews")
-def review_history():
+def review_history(
+    current_user: dict = Depends(get_current_user),
+):
     return {
-        "reviews": get_reviews(),
+        "reviews": get_reviews(
+            user_id=current_user["id"],
+        ),
     }

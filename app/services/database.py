@@ -18,21 +18,101 @@ def init_db() -> None:
     with get_connection() as connection:
         connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS reviews (
+            CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                language TEXT NOT NULL,
-                code TEXT NOT NULL,
-                quality_rating REAL NOT NULL,
-                summary TEXT NOT NULL,
+                username TEXT NOT NULL UNIQUE,
+                api_key TEXT NOT NULL UNIQUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
 
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO users (id, username, api_key)
+            VALUES (1, 'default', 'dev-default-key')
+            """
+        )
+
+        reviews_exists = connection.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name = 'reviews'
+            """
+        ).fetchone()
+
+        if not reviews_exists:
+            connection.execute(
+                """
+                CREATE TABLE reviews (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
+                    language TEXT NOT NULL,
+                    code TEXT NOT NULL,
+                    quality_rating REAL NOT NULL,
+                    summary TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+                """
+            )
+        else:
+            columns = {
+                row["name"]
+                for row in connection.execute(
+                    "PRAGMA table_info(reviews)"
+                ).fetchall()
+            }
+
+            if "user_id" not in columns:
+                connection.execute(
+                    """
+                    ALTER TABLE reviews
+                    ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1
+                    """
+                )
+
         connection.commit()
 
 
+def create_user(
+    username: str,
+    api_key: str,
+) -> int:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO users (username, api_key)
+            VALUES (?, ?)
+            """,
+            (username, api_key),
+        )
+
+        connection.commit()
+
+        return cursor.lastrowid
+
+
+def get_user_by_api_key(
+    api_key: str,
+) -> dict | None:
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT id, username, api_key, created_at
+            FROM users
+            WHERE api_key = ?
+            """,
+            (api_key,),
+        ).fetchone()
+
+        return dict(row) if row else None
+
+
 def save_review(
+    user_id: int,
     language: str,
     code: str,
     quality_rating: float,
@@ -42,14 +122,16 @@ def save_review(
         cursor = connection.execute(
             """
             INSERT INTO reviews (
+                user_id,
                 language,
                 code,
                 quality_rating,
                 summary
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
+                user_id,
                 language,
                 code,
                 quality_rating,
@@ -62,20 +144,41 @@ def save_review(
         return cursor.lastrowid
 
 
-def get_reviews() -> list[dict]:
+def get_reviews(
+    user_id: int | None = None,
+) -> list[dict]:
     with get_connection() as connection:
-        rows = connection.execute(
-            """
-            SELECT
-                id,
-                language,
-                code,
-                quality_rating,
-                summary,
-                created_at
-            FROM reviews
-            ORDER BY id DESC
-            """
-        ).fetchall()
+        if user_id is None:
+            rows = connection.execute(
+                """
+                SELECT
+                    id,
+                    user_id,
+                    language,
+                    code,
+                    quality_rating,
+                    summary,
+                    created_at
+                FROM reviews
+                ORDER BY id DESC
+                """
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                """
+                SELECT
+                    id,
+                    user_id,
+                    language,
+                    code,
+                    quality_rating,
+                    summary,
+                    created_at
+                FROM reviews
+                WHERE user_id = ?
+                ORDER BY id DESC
+                """,
+                (user_id,),
+            ).fetchall()
 
         return [dict(row) for row in rows]
