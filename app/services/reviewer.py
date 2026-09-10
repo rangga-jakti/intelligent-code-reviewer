@@ -13,54 +13,54 @@ class CodeReviewer:
         self,
         code: str,
         language: str,
-        historical_rules: list[str],
+        historical_rules: list[dict[str, str]],
     ) -> ReviewResponse:
 
-        rules = "\n".join(f"- {rule}" for rule in historical_rules)
+        rules = "\n".join(
+            f"- Rule {rule["id"]} [{rule["type"]}]: {rule["description"]}"
+            for rule in historical_rules
+        )
 
         prompt = f"""
 You are an expert software engineer, code reviewer, security analyst, and software architect.
 
 Review the following {language} source code.
 
-Historical review rules:
+HISTORICAL REVIEW RULES:
 {rules}
 
+Use the historical rules as evidence when they are relevant to a finding.
+
 IMPORTANT: Return ONLY valid JSON.
-IMPORTANT: You MUST use EXACTLY these top-level fields:
+
+Use EXACTLY these top-level fields:
 - quality_rating
 - summary
 - findings
 - best_practices
 - optimizations
 
-The JSON structure MUST be:
+Each finding MUST use this structure:
 {{
-  "quality_rating": 1,
-  "summary": "Brief overall assessment",
-  "findings": [
-    {{
-      "category": "security",
-      "severity": "high",
-      "line": 1,
-      "issue": "Short issue title",
-      "explanation": "Why this is a problem",
-      "suggestion": "How to fix it"
-    }}
-  ],
-  "best_practices": ["Recommendation"],
-  "optimizations": ["Optimization recommendation"]
+  "category": "security",
+  "severity": "high",
+  "line": 1,
+  "issue": "Short issue title",
+  "explanation": "Why this is a problem",
+  "suggestion": "How to fix it",
+  "historical_rule": "Exact historical rule description or null"
 }}
 
-Rules for findings:
-- category must be one of: bug, security, performance, formatting, architecture, maintainability
-- severity must be one of: critical, high, medium, low, info
-- line must be an integer or null
-- quality_rating must be between 1 and 10
-- findings must always be an array
-- best_practices must always be an array
-- optimizations must always be an array
-- If there are no findings, return an empty findings array
+Rules:
+- category: bug, security, performance, formatting, architecture, maintainability
+- severity: critical, high, medium, low, info
+- line: integer or null
+- quality_rating: number from 1 to 10
+- findings: always an array
+- best_practices: always an array
+- optimizations: always an array
+- historical_rule MUST contain the exact description from the historical rules when a rule supports the finding
+- historical_rule MUST be null when no historical rule is relevant
 
 CODE:
 ```{language}
@@ -73,7 +73,7 @@ CODE:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert code reviewer. Follow the requested JSON schema exactly."
+                    "content": "You are an expert code reviewer. Follow the JSON schema exactly."
                 },
                 {
                     "role": "user",

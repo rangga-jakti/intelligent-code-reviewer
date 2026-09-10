@@ -1,7 +1,21 @@
 ﻿import csv
 from pathlib import Path
-def load_rules() -> list[str]:
+
+
+def load_rules() -> list[dict[str, str]]:
     path = Path("data/historical_rules.csv")
-    with path.open("r", encoding="utf-8") as file:
+
+    with path.open("r", encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
-        return [row["description"] for row in reader]
+
+        if reader.fieldnames != ["id", "type", "description"]:
+            raise ValueError(f"Invalid CSV header: {reader.fieldnames}")
+
+        return [
+            {
+                "id": row["id"],
+                "type": row["type"],
+                "description": row["description"],
+            }
+            for row in reader
+        ]
